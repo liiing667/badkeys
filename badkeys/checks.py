@@ -1,4 +1,5 @@
 import hashlib
+import re
 import warnings
 
 import cryptography
@@ -336,3 +337,30 @@ def detectandcheck(inkey, checks=defaultchecks.keys(), keyrecover=False):
     if inkey.startswith(("ssh-", "ecdsa-")):
         return checksshpubkey(inkey, checks, keyrecover=keyrecover)
     return {"type": "notfound", "results": {}}
+
+
+_pembeginre = re.compile(r"-----BEGIN [A-Z0-9 ]+-----")
+_pemendre = re.compile(r"-----END [A-Z0-9 ]+-----")
+
+
+def _splitpemblocks(inkey):
+    starts = [m.start() for m in _pembeginre.finditer(inkey)]
+    blocks = []
+    for i, start in enumerate(starts):
+        limit = starts[i + 1] if i + 1 < len(starts) else len(inkey)
+        endm = _pemendre.search(inkey, pos=start, endpos=limit)
+        end = endm.end() if endm else limit
+        blocks.append(inkey[start:end])
+    return blocks
+
+
+def detectandcheckall(inkey, checks=defaultchecks.keys(), keyrecover=False):
+    blocks = _splitpemblocks(inkey)
+    if not blocks:
+        return [detectandcheck(inkey, checks=checks, keyrecover=keyrecover)]
+    results = []
+    for blockno, block in enumerate(blocks):
+        r = detectandcheck(block, checks=checks, keyrecover=keyrecover)
+        r["block"] = blockno
+        results.append(r)
+    return results

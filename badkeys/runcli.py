@@ -7,7 +7,7 @@ import sys
 from . import __version__
 from .allkeys import loadextrabl, urllookup
 from .checks import (_checkkey, allchecks, checkcrt, checkrsa, checksshpubkey, defaultchecks,
-                     detectandcheck, warningchecks)
+                     detectandcheckall, warningchecks)
 from .dkim import parsedkim
 from .dnssec import checkdnskey
 from .jwk import checkjwk
@@ -342,8 +342,14 @@ def runcli():
                 count += 1
         else:
             fcontent = f.read(MAXINPUTSIZE)
-            r = detectandcheck(fcontent, checks=userchecks, keyrecover=args.keyrecover)
-            _printresults(r, fn, args)
+            rlist = detectandcheckall(fcontent, checks=userchecks, keyrecover=args.keyrecover)
+            for r in rlist:
+                if len(rlist) == 1:
+                    # keep single-block output identical to previous behavior
+                    r.pop("block", None)
+                    _printresults(r, fn, args)
+                else:
+                    _printresults(r, f"{fn}[{r['block']}]", args)
 
         if args.moduli or args.ssh_lines or args.crt_lines or args.dkim:
             if lcount == 0:
