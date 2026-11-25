@@ -8,6 +8,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 def rsarecover(p=None, q=None, d=None, n=None, e=65537):
     try:
         if p and q:
+            if p <= 1 or q <= 1 or p == q or (n is not None and p * q != n):
+                return None
             d = rsa.rsa_recover_private_exponent(e, p, q)
         elif d:
             p, q = rsa.rsa_recover_prime_factors(n, e, d)

@@ -36,7 +36,7 @@ def checkjwk(key, checks, keyrecover=False):
             r["type"] = "ec"
             r["curve"] = key["crv"].lower().replace("-", "")
             r["x"] = _ub64toint(key["x"])
-            r["y"] = _ub64toint(key["x"])
+            r["y"] = _ub64toint(key["y"])
             r["results"] = checkall(r["x"], checks=checks)
         elif key["kty"] == "OKP":
             if "x" not in key or key["x"] == "" \

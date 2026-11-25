@@ -220,6 +220,35 @@ def _reterr(rtype, ex):
     return {"type": rtype, "results": {}, "exception": ex.__class__.__name__, "errmsg": str(ex)}
 
 
+def _rsaprivkey_valid(priv):
+    """Check RSA private key consistency without expensive validation for huge keys.
+
+    Private keys are loaded with ``unsafe_skip_rsa_key_validation`` to avoid a
+    denial of service with excessively large keys (see upstream issue #52).
+    That means Python cryptography will happily accept corrupted factors, so we
+    have to reject them ourselves.  Multiplying the factors is cheap even for
+    very large keys; the full consistency check (including primality tests) is
+    only performed for keys within the size limit used by the other checks.
+    """
+    if not isinstance(priv, rsa.RSAPrivateKey):
+        return True
+    try:
+        numbers = priv.private_numbers()
+        p = numbers.p
+        q = numbers.q
+        n = numbers.public_numbers.n
+    except (ValueError, TypeError):
+        return False
+    if p <= 1 or q <= 1 or p == q or p * q != n:
+        return False
+    if n.bit_length() <= RSA_MAX_SIZE:
+        try:
+            numbers.private_key()
+        except (ValueError, TypeError):
+            return False
+    return True
+
+
 def checkpubkey(rawkey, checks=defaultchecks.keys(), keyrecover=False):
     try:
         key = serialization.load_pem_public_key(rawkey.encode())
@@ -244,6 +273,8 @@ def checkprivkey(rawkey, checks=defaultchecks.keys(), keyrecover=False):
         # UnsupportedAlgorithm: Unsupported elliptic curves
         # TypeError: passwords-protected keys
         return _reterr("unsupported", e)
+    if not _rsaprivkey_valid(priv):
+        return _reterr("unparseable", ValueError("Invalid private key"))
     return _checkkey(priv.public_key(), checks, keyrecover=keyrecover)
 
 
@@ -298,6 +329,8 @@ def checksshprivkey(sshkey, checks=defaultchecks.keys(), keyrecover=False):
         # UnsupportedAlgorithm: unsupported key types, e.g., sk-*
         # TypeError: password-protected keys
         return _reterr("unsupported", e)
+    if not _rsaprivkey_valid(pkey):
+        return _reterr("unparseable", ValueError("Invalid private key"))
     return _checkkey(pkey.public_key(), checks, keyrecover=keyrecover)
 
 
