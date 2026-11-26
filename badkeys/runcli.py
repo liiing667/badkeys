@@ -237,7 +237,7 @@ def runcli():
             if isinstance(j, dict) and "kty" in j:
                 r = checkjwk(j, checks=userchecks, keyrecover=args.keyrecover)
                 _printresults(r, fn, args)
-            elif isinstance(j, dict) and "keys" in j:
+            elif isinstance(j, dict) and isinstance(j.get("keys"), list):
                 for k in j["keys"]:
                     r = checkjwk(k, checks=userchecks, keyrecover=args.keyrecover)
                     _printresults(r, fn, args)

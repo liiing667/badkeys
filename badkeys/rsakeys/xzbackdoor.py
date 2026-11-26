@@ -1,8 +1,7 @@
 def xzbackdoor(n, e=0):  # noqa: ARG001
-    byte_len = (n.bit_length() + 7) // 8
-    # avoid error with malformed N=0 RSA key
-    if byte_len == 0:
+    if n <= 0:
         return False
+    byte_len = (n.bit_length() + 7) // 8
 
     nb = n.to_bytes(byte_len, byteorder="big")
     # if upper bit is set, ASN1 encodes with leading zero byte

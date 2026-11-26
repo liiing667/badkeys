@@ -52,6 +52,8 @@ def smalld(n, e):
         return False
     f_ = rational_to_contfrac(e, n)
     for k, dg in convergents_from_contfrac(f_):
+        if k == 0:
+            continue
         edg = e * dg
         phi = edg // k
 

@@ -11,11 +11,17 @@ from .smallfactors import smallfactors
 
 def _bitpct(x):
     bitlen = x.bit_length()
+    if bitlen == 0:
+        return 0
     bitset = x.bit_count()
     return bitset * 100 // bitlen
 
 
 def rsabias(n, e=0):  # noqa: ARG001
+    # Zero/one are not usable moduli and would produce misleading percentages.
+    if n <= 1:
+        return False
+
     pct = _bitpct(n)
 
     # For smaller keys, use a slightly larger threshold to

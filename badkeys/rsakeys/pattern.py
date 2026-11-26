@@ -5,6 +5,8 @@ _bprex = re.compile(rb"(.)\1{15}")
 
 
 def pattern(n, e=0):  # noqa: ARG001
+    if n <= 0:
+        return False
     nbin = n.to_bytes((n.bit_length() + 7) // 8, byteorder="big")
     if _bprex.search(nbin):
         return {"detected": True}

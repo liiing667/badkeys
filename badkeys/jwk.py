@@ -1,5 +1,4 @@
 import base64
-import binascii
 
 from .checks import checkall, checkrsa
 
@@ -8,9 +7,18 @@ VALIDCURVES = ["P-256", "P-384", "P-521", "Ed25519", "Ed448", "X25519", "X448", 
 
 
 def _ub64toint(b64):
-    fb64 = b64.replace(" ", "").encode()
+    if not isinstance(b64, str):
+        raise ValueError("JWK integer parameter must be a string")
+    # JWK uses base64url without padding, but tolerate whitespace and
+    # padding supplied by other encoders.  validate=True ensures that
+    # structurally broken strings are rejected instead of being silently
+    # decoded to an empty/zero integer.
+    fb64 = "".join(b64.split()).encode("ascii")
+    fb64 = fb64.rstrip(b"=")
     pad = b"=" * ((-len(fb64)) % 4)
-    raw = base64.urlsafe_b64decode(fb64 + pad)
+    raw = base64.b64decode(fb64 + pad, altchars=b"-_", validate=True)
+    if not raw:
+        raise ValueError("JWK integer parameter is empty")
     return int.from_bytes(raw, byteorder="big")
 
 
@@ -26,6 +34,8 @@ def checkjwk(key, checks, keyrecover=False):
             r["type"] = "rsa"
             r["n"] = _ub64toint(key["n"])
             r["e"] = _ub64toint(key["e"])
+            if r["n"] <= 0:
+                return {"type": "unparseable", "results": {}}
             r["bits"] = r["n"].bit_length()
             r["results"] = checkrsa(r["n"], e=r["e"], checks=checks, keyrecover=keyrecover)
         elif key["kty"] == "EC":
@@ -50,6 +60,6 @@ def checkjwk(key, checks, keyrecover=False):
             r["results"] = checkall(r["x"], checks=checks)
         else:
             return {"type": "unsupported", "results": {}}
-    except (binascii.Error, UnicodeEncodeError):
+    except (ArithmeticError, TypeError, ValueError):
         return {"type": "unparseable", "results": {}}
     return r

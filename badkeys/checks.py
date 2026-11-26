@@ -166,6 +166,17 @@ def _checkkey(key, checks, keyrecover=False):
 
 def checkrsa(n, e=65537, checks=defaultchecks.keys(), keyrecover=False):
     results = {}
+    try:
+        invalid_n = n <= 0
+    except TypeError:
+        invalid_n = True
+    if invalid_n:
+        # Zero/negative/non-integer moduli are not keys and make byte
+        # conversion and bit-percentage checks fail.  rsainvalid can still
+        # give callers a concrete conclusion when that check was requested.
+        if "rsainvalid" in checks:
+            results["rsainvalid"] = {"detected": True, "subtest": "invalid_n"}
+        return results
     for check in checks:
         if n.bit_length() > RSA_MAX_SIZE and check != "rsawarnings":
             # skip all checks except rsawarnings on excessively large RSA keys

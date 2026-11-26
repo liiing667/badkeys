@@ -1,4 +1,6 @@
 def rsainvalid(n, e=65537):
+    if n <= 0:
+        return {"detected": True, "subtest": "invalid_n"}
     if e < 3:
         return {"detected": True, "subtest": "invalid_e"}
     if e >= n:
